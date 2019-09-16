@@ -1,6 +1,6 @@
 FROM golang:1.12.9-alpine3.10 AS build
 
-ENV DRONE_VER=1.3.1
+ENV DRONE_VER=1.4.0
 
 RUN apk update \
     && \
@@ -15,11 +15,23 @@ RUN apk update \
     && \
     mkdir -p src/github.com/drone/ \
     && \
-    mv "drone-${DRONE_VER}" src/github.com/drone/drone
+    mv "drone-${DRONE_VER}" src/github.com/drone/drone \
+    && \
+    sed -i -e 's/package converter/package validator/' src/github.com/drone/drone/plugin/validator/noop.go \
+    && \
+    sed -i -e 's/core.ConvertArgs/core.ValidateArgs/' src/github.com/drone/drone/plugin/validator/noop.go \
+    && \
+    sed -i -e '14i// +build !oss' src/github.com/drone/drone/plugin/converter/memoize.go \
+    && \
+    sed -i -e 's/notImplemented/rollbackNotImplemented/g' src/github.com/drone/drone/handler/api/repos/builds/rollback_oss.go
+
+COPY legacy_oss.go src/github.com/drone/drone/plugin/converter/
+COPY memoize_oss.go src/github.com/drone/drone/plugin/converter/
+COPY remote_oss.go src/github.com/drone/drone/plugin/converter/
 
 WORKDIR src/github.com/drone/drone
 
-RUN GO111MODULE=on go build -tags oss -o drone-server ./cmd/drone-server
+RUN GO111MODULE=on go build -tags "oss nolimit" -o drone-server ./cmd/drone-server
 
 FROM alpine:3.10
 
@@ -32,12 +44,15 @@ ENV DRONE_SERVER_PORT :8080
 ENV DRONE_AGENTS_ENABLED false
 ENV DRONE_RUNNER_LOCAL true
 ENV DRONE_RUNNER_CAPACITY 4
+ENV DRONE_REPOSITORY_TRUSTED true
 
 EXPOSE 8080
 
 RUN apk update \
     && \
     apk add --no-cache \
-      ca-certificates
+      ca-certificates \
+    && \
+    mkdir /data
 
 ENTRYPOINT ["/drone-server"]
