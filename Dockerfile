@@ -1,6 +1,6 @@
 FROM golang:1.12.9-alpine3.10 AS build
 
-ENV DRONE_VER=1.4.0
+ENV DRONE_VER=1.6.2
 
 RUN apk update \
     && \
@@ -15,19 +15,7 @@ RUN apk update \
     && \
     mkdir -p src/github.com/drone/ \
     && \
-    mv "drone-${DRONE_VER}" src/github.com/drone/drone \
-    && \
-    sed -i -e 's/package converter/package validator/' src/github.com/drone/drone/plugin/validator/noop.go \
-    && \
-    sed -i -e 's/core.ConvertArgs/core.ValidateArgs/' src/github.com/drone/drone/plugin/validator/noop.go \
-    && \
-    sed -i -e '14i// +build !oss' src/github.com/drone/drone/plugin/converter/memoize.go \
-    && \
-    sed -i -e 's/notImplemented/rollbackNotImplemented/g' src/github.com/drone/drone/handler/api/repos/builds/rollback_oss.go
-
-COPY legacy_oss.go src/github.com/drone/drone/plugin/converter/
-COPY memoize_oss.go src/github.com/drone/drone/plugin/converter/
-COPY remote_oss.go src/github.com/drone/drone/plugin/converter/
+    mv "drone-${DRONE_VER}" src/github.com/drone/drone
 
 WORKDIR src/github.com/drone/drone
 
