@@ -1,6 +1,6 @@
-FROM golang:1.12.9-alpine3.10 AS build
+FROM golang:1.13.6-alpine3.11 AS build
 
-ENV DRONE_VER=1.6.2
+ENV DRONE_VER=1.6.4
 
 RUN apk update \
     && \
@@ -21,7 +21,7 @@ WORKDIR src/github.com/drone/drone
 
 RUN GO111MODULE=on go build -tags "oss nolimit" -o drone-server ./cmd/drone-server
 
-FROM alpine:3.10
+FROM alpine:3.11
 
 COPY --from=build /go/src/github.com/drone/drone/drone-server /
 
